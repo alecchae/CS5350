@@ -13,7 +13,7 @@ def ID3(S, Attributes, labels, split):
         A = Bestsplit(S, Attributes, split, labels)
         for v in Attributes[A]:
             node = Node(False, Rootnode)
-            Rootnode.branches(v, node)
+            Rootnode.branches[v] = node
             S_v = S_v.loc[S_v[A] == v]
             if S_v.empty:
                 leafnode = Node(True, Rootnode)
@@ -22,7 +22,7 @@ def ID3(S, Attributes, labels, split):
             else:
                 _Attributes = Attributes.copy()
                 del _Attributes[A]
-                Rootnode.branches[v] = ID3(S_v, _Attributes, labels)
+                Rootnode.branches[v] = ID3(S_v, _Attributes, labels, split)
 
         return Rootnode
 
