@@ -9,3 +9,5 @@ To run Standard Perceptron "python Perceptron.py standard"
 To run Voted Perceptron "python Perceptron.py voted"
 
 To run Averaged Perceptron "python Perceptron.py averaged"
+
+To run SVM "python SVM.py"
