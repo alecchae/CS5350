@@ -1,7 +1,7 @@
 import sys
 import numpy as np
 import pandas as pd
-
+from scipy.optimize import minimize
 
 def a_svm_stochastic_sub_gradient(train_data, C):
     w = np.asmatrix(np.zeros(4))
@@ -9,17 +9,17 @@ def a_svm_stochastic_sub_gradient(train_data, C):
     train_dataY = np.asmatrix(train_data.iloc[:, 4:].values)
     N = train_data.shape[0]
     t = 0
-    a = 0.5
+    a = 0.01
     for T in range(100):
         random = np.random.permutation(train_data.shape[0] - 1)
-        l_0 = 0.1
+        l_0 = 0.0001
         for i in range(train_data.shape[0] - 1):
             random_i = random[i] - 1
-            margin = 1 - train_dataY[random_i] * train_dataX[random_i] * w.T
-            if max(0, margin) == 0:
-                w = (1 - l_0) * w
+            margin = train_dataY[random_i] * train_dataX[random_i] * w.T
+            if margin <= 1:
+                w = w - l_0 * w + (l_0 * C * N * train_dataY[random_i] * train_dataX[random_i])
             else:
-                w = w - l_0 * (w + l_0 * C * N * train_dataY[random_i] * train_dataX[random_i])
+                w = (1 - l_0) * w
             l = l_0 / (1 + (l_0 * t / a))
             l_0 = l
             t += 1
@@ -34,14 +34,14 @@ def b_svm_stochastic_sub_gradient(train_data, C):
     t = 0
     for T in range(100):
         random = np.random.permutation(train_data.shape[0] - 1)
-        l_0 = 0.1
+        l_0 = 0.0001
         for i in range(train_data.shape[0] - 1):
             random_i = random[i] - 1
-            margin = 1 - train_dataY[random_i] * train_dataX[random_i] * w.T
-            if max(0, margin) == 0:
-                w = (1 - l_0) * w
+            margin = train_dataY[random_i] * train_dataX[random_i] * w.T
+            if margin <= 1:
+                w = w - l_0 * w + (l_0 * C * N * train_dataY[random_i] * train_dataX[random_i])
             else:
-                w = w - l_0 * (w + l_0 * C * N * train_dataY[random_i] * train_dataX[random_i])
+                w = (1 - l_0) * w
             l = l_0 / (1 + t)
             l_0 = l
             t += 1
@@ -50,20 +50,28 @@ def b_svm_stochastic_sub_gradient(train_data, C):
 def error(w, data):
     dataX = np.asmatrix(data.iloc[:, :4].values)
     dataY = np.asmatrix(data.iloc[:, 4:].values)
-    error = 0
+    correct = 0
     for i in range(data.shape[0] - 1):
         prediction = dataX[i] * w.T
-        if np.sign(prediction) != np.sign((dataY[i])):
-            error += 1
+        if np.sign(prediction) == np.sign((dataY[i])):
+            correct += 1
 
-    return error / dataX.shape[0]
+    return correct / dataX.shape[0]
+
+
+def con(a,y,c):
+    return np.sum(a.all() * y.all()) == 0 and c >= a.all() >= 0
+
 
 def dual_svm_stochastic_sub_gradient(train_data, C):
     w = np.asmatrix(np.zeros(4))
     train_dataX = np.asmatrix(train_data.iloc[:, :4].values)
     train_dataY = np.asmatrix(train_data.iloc[:, 4:].values)
-    b = 1
+    b = 0
     random = np.random.permutation(train_data.shape[0] - 1)
+    a = np.asmatrix(np.zeros(train_data.shape[0]))
+    set = [a, train_dataX, train_dataY]
+    #optimal_a = minimize(func, set, constraints=con(a,train_dataY,C), method='SLSQP')
     for i in range(train_data.shape[0] - 1):
         random_i = random[i] - 1
         for j in range(train_data.shape[0] - 1):
@@ -75,7 +83,15 @@ def dual_svm_stochastic_sub_gradient(train_data, C):
 
     return w
 
-
+def func(a):
+    _a = a[0]
+    _x = a[1]
+    _y = a[2]
+    sum = 0
+    for i in range(_a):
+        for j in range(_a):
+            sum += _y[i] * _y[j] * _a[i] * _a[j] * _x[j] * _x[i].T
+    return sum * 0.5 - np.sum(a)
 
 
 if __name__ == '__main__':
